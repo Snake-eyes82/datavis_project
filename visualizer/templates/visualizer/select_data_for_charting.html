@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% load static %}
+{% comment %} select_data_for_charting.html {% endcomment %}
+
+{% block title %}Select Data for Charting{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Select Data for Charting</h2>
+
+    <p>Below is the structure of your uploaded XML file. Please review the elements and select the data you wish to visualize.</p>
+
+    <form method="post" action="{% url 'select_data_for_charting' %}">
+        {% csrf_token %}
+
+        <h3>XML Structure:</h3>
+        <ul class="list-group">
+            {% for tag, info in xml_structure.items %}
+            <li class="list-group-item">
+                <strong>Element:</strong> {{ tag }} (appears {{ info.count }} times)
+                {% if info.attributes %}
+                <br />
+                <strong>Attributes:</strong> {{ info.attributes|join:", " }}
+                {% endif %} {% if info.child_tags %}
+                <br />
+                <strong>Has child elements:</strong> {{ info.child_tags|join:", " }}
+                {% endif %}
+
+                <div class="form-check mt-2">
+                    <input class="form-check-input" type="checkbox" name="selected_element" value="{{ tag }}" id="{{ tag|slugify }}">
+                    <label class="form-check-label" for="{{ tag|slugify }}"> Select this element </label>
+                </div>
+
+                {% if info.attributes %}
+                <div class="mt-2">
+                    <strong>Select Attributes:</strong><br />
+                    {% for attr in info.attributes %}
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="selected_attribute" value="{{ tag }}__attribute__{{ attr }}" id="{{ tag|slugify }}_attribute_{{ attr|slugify }}">
+                        <label class="form-check-label" for="{{ tag|slugify }}_attribute_{{ attr|slugify }}"> {{ attr }} </label>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %} {% if info.child_tags %}
+                <div class="mt-2">
+                    <strong>Select Child Elements as Data Fields:</strong><br />
+                    {% for child_tag in info.child_tags %}
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" name="selected_data_field" value="{{ tag }}__child__{{ child_tag }}" id="{{ tag|slugify }}_child_{{ child_tag|slugify }}">
+                        <label class="form-check-label" for="{{ tag|slugify }}_child_{{ child_tag|slugify }}"> {{ child_tag }} </label>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+
+        <button type="submit" class="btn btn-primary mt-4">Proceed to Chart Selection</button>
+    </form>
+</div>
+
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{# In visualizer/templates/visualizer/upload_form.html #}
+
+
+{% block title %}Upload XML File{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Upload XML File for Conversion</h2>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="xmlFile" class="form-label">Select XML File:</label>
+            <input type="file" class="form-control" id="xmlFile" name="xml_file">
+        </div>
+        <button type="submit" class="btn btn-primary">Upload and Convert</button>
+    </form>
+
+    {# You can add messages here if you implement Django messages in the view #}
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+</div>
+{% endblock %}

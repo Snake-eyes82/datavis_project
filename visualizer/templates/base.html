@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+{% comment %} base.html {% endcomment %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}My Django App{% endblock %}</title>
+    {# You can include your CSS files here #}
+    {% load static %}
+    {#<link rel="stylesheet" href="{% static 'css/style.css' %}"> {# Example static file #}
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"> {# Example Bootstrap CSS #}
+</head>
+<body>
+    <div id="content">
+        {% block content %}
+        {# Default content goes here #}
+        {% endblock %}
+    </div>
+    {# You can include your JavaScript files here #}
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script> {# Example Bootstrap JS dependencies #}
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    {% block extra_js %}{% endblock %} {# For extra JavaScript on specific pages #}
+</body>
+</html>

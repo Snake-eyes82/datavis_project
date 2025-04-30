@@ -1,0 +1,22 @@
+# Ignore the virtual environment folder
+venv/
+
+# Ignore Python cache files
+__pycache__/
+
+# Ignore any operating system specific files (optional but good practice)
+.DS_Store
+Thumbs.db
+
+# Ignore collected static files (if you run collectstatic)
+static_cdn/
+staticfiles/
+
+# Ignore media files (if you handle user uploads)
+media/
+
+# Ignore database file (if using SQLite)
+db.sqlite3
+
+# Ignore environment variables file (if you have one)
+.env

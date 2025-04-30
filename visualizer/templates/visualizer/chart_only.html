@@ -1,0 +1,521 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{# In visualizer/templates/visualizer/chart_only.html #}
+
+{% block title %}Data Chart{% endblock %} {# Updated title #}
+
+{# Page-specific CSS #}
+{% block extra_css %}
+    <style>
+        /* Basic styling for the chart container */
+        .chart-container {
+            width: 100%; /* Make container wider */
+            max-width: 1000px; /* Set a larger max width */
+            margin: 20px auto; /* Center the chart */
+            /* Height will be set by JavaScript based on selection */
+            position: relative; /* Needed for responsive charts */
+            border: 1px solid #ccc; /* Optional: Add border to see container */
+            background-color: #fff; /* White background for the chart area */
+            padding: 15px; /* Add some padding inside the container */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Optional: Add a subtle shadow */
+            /* Ensure the container is flexible for responsiveness */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            /* Added a default minimum height */
+            min-height: 300px;
+        }
+         /* Basic styling for the canvas element */
+        #myChart {
+            display: block; /* Ensure canvas is a block element */
+            box-sizing: border-box; /* Include padding and border in element's total width and height */
+            /* Remove CSS width/height here, we'll set them explicitly in JS based on container */
+            /* width: 100% !important; */
+            /* height: 100% !important; */
+        }
+
+         /* Basic styling for the message area */
+        .messages {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+        .messages li {
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+        }
+         .messages .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* Style for Chart.js tooltips (optional) */
+        .chartjs-tooltip {
+            opacity: 1;
+            position: absolute;
+            background: rgba(0, 0, 0, .7);
+            color: white;
+            border-radius: 3px;
+            -webkit-transition: all .1s ease;
+            transition: all .1s ease;
+            pointer-events: none;
+            -webkit-transform: translate(-50%, 0);
+            transform: translate(-50%, 0);
+            z-index: 1000; /* Ensure tooltip is above chart elements */
+        }
+
+        .chartjs-tooltip-key {
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .chartjs-tooltip-key-icon {
+            display: inline-block;
+            width: 20px;
+            height: 10px;
+            margin-right: 5px;
+        }
+
+        /* Styling for the chart controls container */
+        .chart-controls-container {
+            display: flex; /* Use flexbox to align controls */
+            justify-content: center; /* Center the controls horizontally */
+            gap: 20px; /* Add space between dropdowns */
+            margin-bottom: 20px;
+            flex-wrap: wrap; /* Allow controls to wrap on smaller screens */
+        }
+
+        /* Styling for individual chart control groups */
+        .chart-control-group {
+            display: flex;
+            align-items: center; /* Vertically align label and select */
+            gap: 10px; /* Space between label and select */
+        }
+
+        .chart-controls-container label {
+            font-weight: bold;
+        }
+        .chart-controls-container select {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 1rem;
+        }
+    </style>
+{% endblock %}
+
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Data Chart Visualization</h2>
+
+    {# Display conversion error if any #}
+    {% if conversion_error %}
+        <ul class="messages">
+            <li class="error">{{ conversion_error }}</li>
+        </ul>
+    {% endif %}
+
+    {# Add navigation buttons #}
+    <div class="d-flex justify-content-between mb-3">
+        {# Ensure this URL name is correct for your data table page #}
+        <a href="{% url 'visualizer:visualizer_interface' %}" class="btn btn-secondary">View Data Table</a>
+        {# Add a button to upload a new file - assuming 'upload_dataset' is the URL name #}
+        <a href="{% url 'visualizer:upload_dataset' %}" class="btn btn-primary">Upload New File</a>
+    </div>
+
+
+    {# Section to display the chart #}
+    <h3>Chart:</h3>
+
+    {# Check if there is data available to chart #}
+    {% if extracted_data_rows_list_of_dicts %} {# Check the list itself, not the JSON string #}
+
+        {# Chart Controls (Type and Size) #}
+        <div class="chart-controls-container">
+            <div class="chart-control-group">
+                <label for="chartTypeSelector">Select Chart Type:</label>
+                <select id="chartTypeSelector">
+                    <option value="bar">Bar Chart</option>
+                    <option value="line">Line Chart</option>
+                    <option value="pie">Pie Chart</option>
+                    {# Add other chart types as needed #}
+                </select>
+            </div>
+
+             <div class="chart-control-group">
+                <label for="chartSizeSelector">Select Chart Size:</label>
+                <select id="chartSizeSelector">
+                    <option value="small">Small (400px)</option>
+                    <option value="medium" selected>Medium (600px)</option> {# Default to Medium #}
+                    <option value="large">Large (800px)</option>
+                    <option value="xlarge">Extra Large (1000px)</option>
+                    {# Could add a custom input field later if needed #}
+                </select>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            {# This is the canvas element where Chart.js will draw the chart #}
+            <canvas id="myChart"></canvas>
+        </div>
+    {% else %}
+        {# Display a message if no data is available for charting #}
+        <p>No data available to display a chart. Please ensure you have uploaded a file and the data was extracted successfully.</p>
+         {# Ensure this URL name is correct for your upload page #}
+        <p><a href="{% url 'visualizer:upload_dataset' %}">Upload New File</a></p>
+    {% endif %}
+
+</div> {# closes <div class="container mt-4"> #}
+
+{% endblock %} {# End of block content #}
+
+{# Page-specific JavaScript for Chart.js #}
+{% block extra_js %}
+    {# Load the Chart.js library from a CDN #}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+    <script>
+        // Declare chart variable outside the DOMContentLoaded listener so it can be accessed later
+        let myChart = null;
+
+        // Function to destroy the existing chart instance
+        function destroyChart() {
+            if (myChart) {
+                myChart.destroy();
+                myChart = null; // Set to null after destroying
+                console.log("Debug in chart_only.html: Existing chart destroyed.");
+            }
+        }
+
+        // Function to set the height of the chart container
+        function setChartContainerHeight(size) {
+             const container = document.querySelector('.chart-container');
+             if (container) {
+                  let height = 600; // Default height
+
+                  switch(size) {
+                      case 'small':
+                          height = 400;
+                          break;
+                      case 'medium':
+                          height = 600;
+                          break;
+                      case 'large':
+                          height = 800;
+                          break;
+                       case 'xlarge':
+                          height = 1000;
+                          break;
+                      // Add more cases for other sizes if needed
+                      default:
+                          height = 600; // Fallback to default
+                  }
+                  container.style.height = `${height}px`;
+                  console.log(`Debug in chart_only.html: Chart container height set to: ${height}px`);
+             } else {
+                  console.warn("Debug in chart_only.html: Chart container not found for setting height.");
+             }
+        }
+
+
+        // Function to create and render the chart
+        function createChart(chartType, labels, amounts) {
+             console.log(`Debug in chart_only.html: Attempting to create chart of type: ${chartType}`);
+
+             // Get the canvas element
+             const ctx = document.getElementById('myChart');
+
+             if (!ctx) {
+                 console.error("Error in chart_only.html: Canvas element with ID 'myChart' not found for creation.");
+                 return; // Exit if canvas not found
+             }
+
+             // --- Explicitly set canvas height and width based on container ---
+             // This is crucial after setting the container height
+             const container = ctx.parentElement;
+             if (container) {
+                  ctx.width = container.clientWidth;
+                  ctx.height = container.clientHeight; // Use the container's clientHeight
+                  console.log(`Debug in chart_only.html: Canvas size set to: ${ctx.width}x${ctx.height}`);
+             } else {
+                  console.warn("Debug in chart_only.html: Chart container not found for explicit canvas sizing during creation.");
+                  // Fallback to default canvas size or CSS if container not found
+             }
+             // --- End Explicit canvas size ---
+
+
+             // Define chart options based on type (you can customize these further)
+             let chartOptions = {
+                 responsive: true, // Make the chart responsive
+                 maintainAspectRatio: false, // Allow chart to resize freely
+                 plugins: {
+                    legend: {
+                        display: true // Display the legend
+                    },
+                    title: {
+                        display: true,
+                        text: 'Transaction Amounts Over Time' // Chart title
+                    }
+                 }
+             };
+
+             // Customize scales based on chart type
+             if (chartType === 'bar' || chartType === 'line') {
+                 chartOptions.scales = {
+                     y: {
+                         // Removed beginAtZero to let Chart.js auto-scale
+                         // beginAtZero: true,
+                         title: {
+                             display: true,
+                             text: 'Amount' // Y-axis label
+                         },
+                         // Add some padding to the top of the y-axis
+                         suggestedMax: Math.max(...amounts) * 1.1, // Set max to 110% of the highest value
+                         suggestedMin: Math.min(...amounts) >= 0 ? 0 : Math.min(...amounts) * 1.1 // Ensure min is 0 or slightly below lowest negative
+                     },
+                     x: {
+                          title: {
+                             display: true,
+                             text: 'Posting Date' // X-axis label
+                          },
+                          ticks: {
+                             autoSkip: true, // Automatically skip labels to prevent overlap
+                             maxTicksLimit: 15, // Increase limit slightly
+                             maxRotation: 45, // Rotate labels up to 45 degrees
+                             minRotation: 0
+                          }
+                     }
+                 };
+             }
+             // Pie charts don't have scales in the same way
+             // You can add specific options for other chart types here
+
+             try {
+                 // Create the chart instance
+                 myChart = new Chart(ctx, {
+                     type: chartType, // Use the selected chart type
+                     data: {
+                         labels: labels, // Use the extracted labels
+                         datasets: [{
+                             label: 'Amount', // Label for the dataset
+                             data: amounts, // Use the extracted amounts
+                             backgroundColor: chartType === 'pie' ? [ // Different colors for pie slices
+                                 'rgba(255, 99, 132, 0.6)',
+                                 'rgba(54, 162, 235, 0.6)',
+                                 'rgba(255, 206, 86, 0.6)',
+                                 'rgba(75, 192, 192, 0.6)',
+                                 'rgba(153, 102, 255, 0.6)',
+                                 'rgba(255, 159, 64, 0.6)',
+                                 // Add more colors if you have many data points for pie chart
+                             ] : 'rgba(75, 192, 192, 0.6)', // Single color for bars/lines
+                             borderColor: chartType === 'pie' ? [ // Different borders for pie slices
+                                 'rgba(255, 99, 132, 1)',
+                                 'rgba(54, 162, 235, 1)',
+                                 'rgba(255, 206, 86, 1)',
+                                 'rgba(75, 192, 192, 1)',
+                                 'rgba(153, 102, 255, 1)',
+                                 'rgba(255, 159, 64, 1)',
+                                 // Add more colors if you have many data points for pie chart
+                             ] : 'rgba(75, 192, 192, 1)', // Single border color
+                             borderWidth: 1,
+                             // Add other dataset options specific to chart types here (e.g., fill: false for line chart)
+                             ...(chartType === 'line' && { fill: false }), // Add fill: false for line charts
+                         }]
+                     },
+                     options: chartOptions // Use the defined options
+                 });
+                  console.log("Debug in chart_only.html: Chart creation attempt finished. Chart object:", myChart); // Log the chart object
+             } catch (chartError) {
+                  console.error("Error creating Chart.js instance:", chartError);
+             }
+        }
+
+
+        // Wait for the DOM to be fully loaded before trying to render the chart
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("Debug in chart_only.html: DOM fully loaded.");
+
+            const jsonDataElement = document.getElementById('extracted-data-json');
+            const chartTypeSelector = document.getElementById('chartTypeSelector'); // Get the type selector
+            const chartSizeSelector = document.getElementById('chartSizeSelector'); // Get the size selector
+
+
+            let extractedData = []; // Initialize as an empty array
+            let rawJsonText = null;
+
+            if (jsonDataElement) {
+                 console.log("Debug in chart_only.html: Found 'extracted-data-json' element.");
+                 rawJsonText = jsonDataElement.textContent;
+
+                 // --- Debugging for Raw Text Content ---
+                 console.log("Debug in chart_only.html: Raw JSON text content length:", rawJsonText.length);
+                 console.log("Debug in chart_only.html: Raw JSON text starts with '['?", rawJsonText.startsWith('['));
+                 console.log("Debug in chart_only.html: Raw JSON text ends with ']'", rawJsonText.endsWith(']'));
+                 // --- End Debugging ---
+
+                 // --- Attempt JSON.parse, potentially twice if needed ---
+                 let parseResult1 = null;
+                 let parseResult2 = null;
+
+                 try {
+                     // First parse attempt on the raw text content
+                     parseResult1 = JSON.parse(rawJsonText);
+                     console.log("Debug in chart_only.html: Successfully executed first JSON.parse.");
+                     console.log("Debug in chart_only.html: Type of parseResult1:", typeof parseResult1);
+
+                     // Check if the first parse returned a string that looks like a JSON array
+                     if (typeof parseResult1 === 'string' && parseResult1.startsWith('[') && parseResult1.endsWith(']')) {
+                         console.warn("Debug in chart_only.html: First parse returned a string that looks like a JSON array. Attempting second parse.");
+                         try {
+                             // Second parse attempt on the string result from the first parse
+                             parseResult2 = JSON.parse(parseResult1);
+                             console.log("Debug in chart_only.html: Successfully executed second JSON.parse.");
+                             console.log("Debug in chart_only.html: Type of parseResult2:", typeof parseResult2);
+
+                             // If the second parse returned an array, use it as extractedData
+                             if (Array.isArray(parseResult2)) {
+                                 extractedData = parseResult2;
+                                 console.log("Debug in chart_only.html: Second JSON.parse returned an Array. Using it.");
+                             } else {
+                                 console.warn("Debug in chart_only.html: Second JSON.parse did NOT return an Array. Using result from first parse (if it was valid).");
+                                 // If the second parse didn't yield an array, fall back to the first result if it was valid
+                                 if (Array.isArray(parseResult1)) {
+                                      extractedData = parseResult1;
+                                 }
+                             }
+
+                         } catch (secondParseError) {
+                             console.error("Error during second JSON.parse:", secondParseError);
+                             console.warn("Debug in chart_only.html: Second JSON.parse failed. Using result from first parse (if it was valid).");
+                             // If the second parse throws an error, fall back to the first result if it was valid
+                             if (Array.isArray(parseResult1)) {
+                                  extractedData = parseResult1;
+                             }
+                         }
+                     } else {
+                         // If the first parse didn't return a string that looks like a JSON array,
+                         // use the result from the first parse if it's an array
+                         if (Array.isArray(parseResult1)) {
+                             extractedData = parseResult1;
+                             console.log("Debug in chart_only.html: First JSON.parse result is an Array. Using it.");
+                         } else {
+                             console.warn("Debug in chart_only.html: First JSON.parse result is NOT an Array or a string looking like a JSON array.");
+                             // extractedData remains an empty array initialized at the start
+                         }
+                     }
+
+                 } catch (firstParseError) {
+                     console.error("Error during first JSON.parse:", firstParseError);
+                     console.warn("Debug in chart_only.html: First JSON.parse failed.");
+                     // extractedData remains an empty array initialized at the start
+                 }
+                 // --- End Attempt JSON.parse ---
+
+
+            } else {
+                 console.error("Error in chart_only.html: 'extracted-data-json' element not found.");
+            }
+
+            // --- Debugging the type and content of extractedData after all processing ---
+            console.log("Debug in chart_only.html: Final Type of extractedData:", typeof extractedData);
+            console.log("Debug in chart_only.html: Is extractedData an Array?", Array.isArray(extractedData));
+            if (Array.isArray(extractedData)) {
+                 console.log("Debug in chart_only.html: Final Number of data items (if array):", extractedData.length);
+                 if (extractedData.length > 0) {
+                      console.log("Debug in chart_only.html: Final First data item (if array):", extractedData[0]);
+                 }
+            } else {
+                 console.warn("Debug in chart_only.html: extractedData is not an array after all processing.");
+            }
+
+
+            // Check if we have data and if it's an array before attempting to create the chart
+            if (Array.isArray(extractedData) && extractedData.length > 0) { // <-- Ensure it's an array
+                console.log("Debug in chart_only.html: Data available and is an array for charting.");
+                // Extract labels (e.g., dates) and data values (e.g., amounts)
+                // Customize these based on your actual data structure and which columns you want to chart
+                // Assuming 'Posting date' for labels and 'Amount' for data values
+                const labels = extractedData.map(row => row['Date']); // Use 'Date' based on your expanded object
+                const amounts = extractedData.map(row => {
+                    // Clean and convert the amount string to a number
+                    const amountValue = row['Amount']; // Use 'Amount' based on your expanded object
+                    if (amountValue !== null && amountValue !== undefined) { // Check for null or undefined
+                         // If it's already a number, use it directly
+                         if (typeof amountValue === 'number') {
+                             return amountValue;
+                         }
+                         // If it's a string, clean and parse it
+                         if (typeof amountValue === 'string') {
+                             const cleanedAmount = amountValue.trim().replace(/[$,\s]/g, '');
+                             // Attempt to parse as float, return 0 if parsing fails or result is NaN
+                             return parseFloat(cleanedAmount) || 0;
+                         }
+                         // For other types, default to 0
+                         return 0;
+                    }
+                    return 0; // Default to 0 if amount is null or undefined
+                });
+
+                 console.log("Debug in chart_only.html: Extracted labels (first 5):", labels.slice(0, 5));
+                 console.log("Debug in chart_only.html: Extracted amounts (first 5):", amounts.slice(0, 5));
+                 console.log("Debug in chart_only.html: Full amounts array:", amounts);
+                 console.log("Debug in chart_only.html: Type of first amount:", typeof amounts[0]);
+
+
+                // --- Initial chart setup on page load ---
+                // Get the initial chart type and size from the selectors or defaults
+                const initialChartType = chartTypeSelector ? chartTypeSelector.value : 'bar';
+                const initialChartSize = chartSizeSelector ? chartSizeSelector.value : 'medium'; // Default size
+
+                // Set the initial container height
+                setChartContainerHeight(initialChartSize);
+
+                // Create the initial chart
+                createChart(initialChartType, labels, amounts);
+                // --- End initial chart setup ---
+
+
+                // --- Add event listeners for selector changes ---
+                if (chartTypeSelector) {
+                    chartTypeSelector.addEventListener('change', function() {
+                        const selectedChartType = this.value;
+                        const currentChartSize = chartSizeSelector ? chartSizeSelector.value : 'medium'; // Get current size
+                        destroyChart(); // Destroy the old chart instance
+                        // No need to set height again here, it's already set by size selector or initial load
+                        createChart(selectedChartType, labels, amounts); // Create a new chart with the selected type
+                    });
+                } else {
+                     console.warn("Debug in chart_only.html: Chart type selector element not found.");
+                }
+
+                 if (chartSizeSelector) {
+                    chartSizeSelector.addEventListener('change', function() {
+                        const selectedChartSize = this.value;
+                        const currentChartType = chartTypeSelector ? chartTypeSelector.value : 'bar'; // Get current type
+                        destroyChart(); // Destroy the old chart instance
+                        setChartContainerHeight(selectedChartSize); // Set the new container height
+                        createChart(currentChartType, labels, amounts); // Create a new chart with the selected size
+                    });
+                } else {
+                     console.warn("Debug in chart_only.html: Chart size selector element not found.");
+                }
+                // --- End event listeners ---
+
+
+            } else {
+                console.warn("Debug in chart_only.html: No data available or data is not an array for charting.");
+                // This message should only appear if extractedData is empty, null, or not an array
+            }
+        });
+    </script>
+
+    {# This json_script tag is crucial! It safely embeds the JSON data into the HTML #}
+    {# The ID 'extracted-data-json' is used by the JavaScript to find this element #}
+    {# Ensure the variable name 'extracted_data_json_string' matches the context in views.py #}
+    {{ extracted_data_json_string|json_script:"extracted-data-json" }}
+
+{% endblock %} {# End of block extra_js #}

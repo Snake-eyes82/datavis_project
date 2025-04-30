@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{# In visualizer/templates/visualizer/visualizer_interface.html #}
+
+{% block title %}Data Preview{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Extracted Data Preview</h2>
+
+    {# Display conversion error if any #}
+    {% if conversion_error %}
+        <ul class="messages">
+            <li class="error">{{ conversion_error }}</li>
+        </ul>
+    {% endif %}
+
+    {# Add a button/link to the chart page #}
+    <p>
+        {# Ensure this URL name is correct for your chart page #}
+        <a href="{% url 'visualizer:chart_only' %}" class="btn btn-primary">View Chart</a>
+    </p>
+
+
+    {# Display the data table if data is available #}
+    {% if extracted_data_rows_list_of_dicts %}
+        <h3>Data Preview:</h3>
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        {% for header in extracted_header %}
+                            <th scope="col">{{ header }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row_dict in extracted_data_rows_list_of_dicts %}
+                        <tr>
+                            {% for header in extracted_header %}
+                                {# Access dictionary value using header as key #}
+                                {# Use the get_item filter from custom_filters.py #}
+                                <td>{{ row_dict|get_item:header }}</td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% elif not conversion_error %} {# Only show this message if there's no specific conversion error #}
+        <p>No data available to display. Please upload a file.</p>
+         {# Link back to the upload page #}
+        <p><a href="{% url 'visualizer:upload_dataset' %}">Upload New File</a></p>
+    {% endif %}
+
+</div> {# closes <div class="container mt-4"> #}
+
+{# Load the custom template filters from custom_filters.py #}
+{# {% load custom_filters %} {# ENSURE THIS IS CORRECT #}
+
+{% endblock %}
