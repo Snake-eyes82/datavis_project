@@ -1,0 +1,189 @@
+/* visualizer/static/css/styles.css */
+
+/* Basic Body and Container styles (adjust as needed, or if using Bootstrap, these might be handled) */
+body {
+    font-family: sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    background-color: #f8f9fa; /* Light background */
+    color: #333;
+}
+
+.container { /* If you keep Bootstrap, this class is handled */
+    width: 80%;
+    margin: 0 auto;
+    padding: 20px;
+    /* Ensure this container doesn't have flex/grid rules that might interfere with inner elements */
+}
+
+/* Styles for the chart selectors container (adjust as needed) */
+.chart-top-menu { /* Adjust class name if yours is different */
+    margin-bottom: 20px;
+    /* Add basic styling if needed */
+    display: flex; /* Example: Use flex for selector layout */
+    gap: 15px; /* Example: Space between groups */
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.chart-controls-container { /* Adjust class name if yours is different */
+     display: flex;
+    gap: 15px; /* Space between groups */
+    flex-wrap: wrap;
+    align-items: center;
+    /* Remove padding/margin that might have been for the old embedded layout */
+}
+
+.chart-control-group { /* Adjust class name if yours is different */
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+
+/* --- Styles for the Simplified Chart Area --- */
+/* The #basicChartContainer has inline styles for fixed size and border in HTML for this step */
+/* We don't need a separate rule here now, but keep this as a reference for later: */
+/* #basicChartContainer {
+    width: 700px;
+    height: 500px;
+    border: 2px solid blue;
+    margin: 20px auto;
+} */
+
+
+/* Style for the actual Chart.js canvas */
+#myChart {
+    display: block; /* Important for canvas sizing */
+    width: 100% !important; /* Make canvas fill its container */
+    height: 100% !important; /* Make canvas fill its container */
+    border: none; /* Ensure no borders from previous attempts */
+}
+
+
+/* --- Styles for the Custom Pan Scrollbar Control (Bottom) --- */
+/* Keep existing .custom-scrollbar-control base styles */
+.custom-scrollbar-control {
+    position: absolute;
+    /* Common styles */
+    background-color: #f0f0f0;
+    border-top: 1px solid #ccc; /* Keep top border for bottom bar */
+    display: flex; /* Use flexbox for layout inside the bar */
+    align-items: center; /* Vertically align items */
+    padding: 0 5px; /* Padding on the ends */
+    box-sizing: border-box;
+    gap: 5px; /* Space between elements */
+    opacity: 1; /* Start visible */
+    transition: opacity 0.3s ease;
+}
+
+/* Specific styles for the BOTTOM Pan Control */
+.custom-scrollbar-control.pan-control {
+    bottom: 0;
+    left: 0;
+    /* Adjust width to leave space for the side zoom bar */
+    width: calc(100% - 25px); /* Example: Subtract width of the side bar */
+    height: 25px; /* Height of the pan bar */
+    border-right: 1px solid #ccc; /* Add border on right to meet side bar */
+}
+
+/* Optional: Rule to hide on default and show on container hover */
+/* Add this later if you want hover-to-show behavior again */
+/*
+#basicChartContainer:not(:hover) .custom-scrollbar-control.pan-control {
+    opacity: 0;
+}
+*/
+
+
+/* --- Styles for the Custom Zoom Scrollbar Control (Side) --- */
+.custom-scrollbar-control.zoom-control {
+    top: 0; /* Position at the top of the container */
+    right: 0; /* Align to the right edge */
+    /* Adjust height to leave space for the bottom pan bar */
+    height: calc(100% - 25px); /* Example: Subtract height of the bottom bar */
+    width: 25px; /* Width of the zoom bar (adjust as needed) */
+    background-color: #f0f0f0; /* Light background for the bar */
+    border-left: 1px solid #ccc; /* Separator border */
+    display: flex; /* Use flexbox for layout */
+    flex-direction: column; /* Stack items vertically */
+    align-items: center; /* Horizontally align items */
+    padding: 5px 0; /* Padding on the ends */
+    box-sizing: border-box;
+    gap: 5px; /* Space between elements */
+
+    /* Optional: Initially hide and show on hover of the chart container */
+    opacity: 1; /* Start visible for now */
+    transition: opacity 0.3s ease; /* Smooth transition */
+}
+ /* Optional: Rule to hide on default and show on container hover */
+/* Add this later if you want hover-to-show behavior again */
+/*
+#basicChartContainer:not(:hover) .custom-scrollbar-control.zoom-control {
+    opacity: 0;
+}
+*/
+
+
+/* --- Styles for Common Scrollbar Elements (Arrows, Track, Handle) --- */
+/* Keep and potentially modify existing rules, making them apply to both bars */
+.scrollbar-arrow {
+    flex-shrink: 0; /* Prevent arrows from shrinking */
+    background-color: #e0e0e0;
+    border: 1px solid #b0b0b0;
+    padding: 2px 5px;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1;
+    border-radius: 3px;
+    /* Remove fixed width/height if they were there */
+}
+.scrollbar-arrow:hover {
+    background-color: #d0d0d0;
+}
+
+/* Rotate arrows for the zoom control */
+.custom-scrollbar-control.zoom-control .scrollbar-arrow.up {
+    transform: rotate(90deg); /* Rotate < to point up */
+}
+.custom-scrollbar-control.zoom-control .scrollbar-arrow.down {
+    transform: rotate(90deg); /* Rotate > to point down */
+}
+
+
+.scrollbar-track {
+    /* Common styles */
+    background-color: #8894bb;
+    border: 1px solid #548aad;
+    position: relative; /* Positioning context for the handle */
+    cursor: grab; /* Cursor when hovering over the track */
+    border-radius: 2px;
+    overflow: hidden; /* Hide handle overflow */
+    /* Remove fixed width/height if they were there */
+}
+
+/* Specific styles for the Pan Track (Horizontal) */
+.pan-control .scrollbar-track {
+    flex-grow: 1; /* Take horizontal space */
+    height: 10px; /* Fixed height for horizontal track */
+}
+
+ /* Specific styles for the Zoom Track (Vertical) */
+.zoom-control .scrollbar-track {
+    flex-grow: 1; /* Take vertical space */
+    width: 10px; /* Fixed width for vertical track */
+}
+
+
+.scrollbar-handle {
+    position: absolute; /* Position relative to the track */
+    background-color: #8d8d8d; /* Color of the handle */
+    border: 1px solid #8d8d8d;
+    cursor: grab; /* Cursor when hovering over the handle */
+    border-radius: 2px;
+    box-sizing: border-box; /* Include border in handle size */
+    /* Initial width/height/left/top will be set by JS */
+}
+
+/* --- End Styles for Common Scrollbar Elements --- */
